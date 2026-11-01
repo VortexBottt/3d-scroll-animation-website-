@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scroll Animation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Shimmer wave loading screen (first batch: frames 0-15) -->
+  <div id="preloader">
+    <div class="loader-content">
+      <div id="shimmer-text" class="shimmer-wave-text" aria-label="Wait while we load the website!"></div>
+    </div>
+  </div>
+
+  <div class="scroll-container" id="scrollContainer">
+    <div class="sticky-wrapper">
+      <canvas id="sequenceCanvas"></canvas>
+    </div>
+
+    <!-- Contrast scrim: sits between the canvas (below) and the text (above) -->
+    <div class="scrim" aria-hidden="true"></div>
+
+    <!-- UI overlay: sibling of the canvas wrapper, never inside it -->
+    <div id="ui-layer">
+      <section class="scene" id="scene-1">
+        <p class="scene__eyebrow">VIKAS SARVI — CREATIVE DEVELOPER</p>
+        <h1 class="scene__headline">Building digital experiences that feel physical.</h1>
+        <p class="scene__subtext">Scroll to explore the sequence.</p>
+
+        <div class="scroll-hint" aria-hidden="true">
+          <span class="scroll-hint__label">Scroll</span>
+          <span class="scroll-hint__line"></span>
+        </div>
+      </section>
+
+      <section class="scene" id="scene-2">
+        <p class="scene__eyebrow">TECHNICAL EXCELLENCE</p>
+        <h2 class="scene__headline">Flawless motion.</h2>
+        <p class="scene__subtext">Engineered with custom scroll-scrubbing, requestAnimationFrame.</p>
+      </section>
+
+      <section class="scene" id="scene-3">
+        <p class="scene__eyebrow">THE BIGGER PICTURE</p>
+        <h2 class="scene__headline">Immersion is the new interface.</h2>
+        <p class="scene__subtext">Transforming static brands into interactive journeys that users actually remember.</p>
+      </section>
+
+      <section class="scene" id="scene-4">
+        <p class="scene__eyebrow">LET'S WORK TOGETHER</p>
+        <h2 class="scene__headline">Let's build something exceptional.</h2>
+        <div class="scene__actions">
+          <a href="#portfolio" class="btn btn--primary">Visit My Portfolio</a>
+          <a href="mailto:byteworksdeveloper@gmail.com?subject=Hiring%20Inquiry%20-%203D%20Scroll%20Animation&body=Hey%2C%0A%0AI%20want%20to%20hire%20Vikas%20from%20your%20company%20for%20a%203D%20scroll%20animation%20project.%0A%0ALet's%20connect!" class="btn btn--secondary">Hire Me!</a>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

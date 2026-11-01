@@ -1,0 +1,305 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  /* overflow-x: hidden would break position: sticky; clip is safe */
+  overflow-x: clip;
+}
+
+/* Tall scroll container driving the animation progress */
+.scroll-container {
+  position: relative;
+  height: 500vh;
+  overflow: visible;
+}
+
+/* Sticky canvas wrapper pinned to full viewport using 100dvh */
+.sticky-wrapper {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* JS sets the canvas pixel width/height; no sizing here */
+#sequenceCanvas {
+  display: block;
+}
+
+/* ===================== COLOR TOKENS ===================== */
+:root {
+  --text-primary: #ffffff;      /* AAA on dark scrim: headline */
+  --text-secondary: #e2e8f0;    /* AA/AAA: eyebrow + subtext (solid, never low-opacity) */
+  --scrim-top: rgba(0, 0, 0, 0.8);
+  --scrim-mid: rgba(0, 0, 0, 0.6);
+  --scrim-bottom: rgba(0, 0, 0, 0.8);
+}
+
+/* ===================== CONTRAST SCRIM ===================== */
+/* Fixed full-screen gradient between the canvas (below) and text (above).
+   Frames the image and gives the text a uniform, high-contrast backing. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--scrim-top) 0%,
+    var(--scrim-mid) 50%,
+    var(--scrim-bottom) 100%
+  );
+}
+
+/* ===================== UI OVERLAY ===================== */
+/* Sibling of .sticky-wrapper. pointer-events:none lets scroll through. */
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 500vh;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Each scene is a full-viewport panel, hidden until activated by JS.
+   Constrained to 800px and centered; grouped tightly via flex gap. */
+.scene {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  padding: 0 6vw;
+  /* Subtle fallback shadow only — contrast comes from the scrim */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Typography: strict 3-level hierarchy --- */
+.scene__eyebrow {
+  margin: 0;
+  font-size: 13px; /* 12–14px */
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-secondary); /* solid light gray, WCAG-compliant */
+}
+
+.scene__headline {
+  margin: 0;
+  max-width: 100%;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text-primary); /* pure white @ 100% for AAA */
+}
+
+.scene__subtext {
+  margin: 0 auto;
+  max-width: 600px;
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-secondary); /* solid light gray, WCAG-compliant */
+}
+
+/* --- Scene 4 CTA buttons (Fitts's Law + Von Restorff) --- */
+.scene__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.btn {
+  pointer-events: auto; /* re-enable clicks on interactive elements */
+  cursor: pointer;
+  font-family: inherit;
+  font-size: clamp(0.9rem, 1.4vw, 1rem);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-decoration: none; /* anchors render identical to the old buttons */
+  padding: 1rem 2.25rem;   /* generous touch target */
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: background-color 0.3s ease, color 0.3s ease,
+    border-color 0.3s ease, opacity 0.3s ease;
+}
+
+/* Primary: solid white / black text = maximum contrast hero action */
+.btn--primary {
+  background-color: var(--text-primary);
+  color: #000000;
+  border-color: var(--text-primary);
+}
+.btn--primary:hover {
+  background-color: var(--text-secondary);
+  border-color: var(--text-secondary);
+}
+
+/* Secondary: transparent / white text */
+.btn--secondary {
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+.btn--secondary:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--text-primary);
+}
+
+/* --- Scene 1 scroll hint (Jakob's Law) --- */
+.scroll-hint {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.scroll-hint__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.scroll-hint__line {
+  width: 1px;
+  height: 44px;
+  background: linear-gradient(
+    to bottom,
+    rgba(226, 232, 240, 0.9),
+    rgba(226, 232, 240, 0)
+  );
+  transform-origin: top;
+  animation: scroll-bob 2s ease-in-out infinite;
+}
+
+@keyframes scroll-bob {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(0.7);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(6px) scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint__line {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* ===================== MOBILE SCRIM ===================== */
+/* On mobile the 0.8/0.6/0.8 scrim reads too dark (esp. at low screen
+   brightness) and hides the animation. Lighten it so the sequence shows
+   through, and beef up the text-shadow to keep white text readable.
+   Desktop (>768px) is untouched — these sit at the end of the file so they
+   override the earlier :root tokens and .scene rule only when matched. */
+@media (max-width: 768px) {
+  :root {
+    --scrim-top: rgba(0, 0, 0, 0.5);
+    --scrim-mid: rgba(0, 0, 0, 0.2);
+    --scrim-bottom: rgba(0, 0, 0, 0.5);
+  }
+
+  .scene {
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+  }
+}
+
+/* ===================== SHIMMER WAVE LOADER ===================== */
+#preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0a0a0a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  overflow: hidden;
+  /* Base clip-path is required so .hidden can transition the wipe-up
+     (a transition from `none` to a polygon does not animate). */
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  transition: clip-path 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* "Wipe up" reveal: collapses the overlay toward the top edge */
+#preloader.hidden {
+  clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
+  pointer-events: none;
+}
+
+.loader-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+}
+
+.shimmer-wave-text {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.shimmer-char {
+  display: inline-block;
+  /* The moving gradient shine */
+  background: linear-gradient(90deg, rgba(255,255,255,0.4) 0%, #ffffff 50%, rgba(255,255,255,0.4) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  /* The wave animation */
+  animation: shimmerWave 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmerWave {
+  0%, 100% {
+    background-position: 100% 0;
+    transform: translateY(0);
+  }
+  50% {
+    background-position: 0 0;
+    transform: translateY(-4px); /* The wave bounce */
+  }
+}
