@@ -267,11 +267,16 @@ html, body {
 
 .loader-content {
   display: flex;
+  flex-direction: column; /* stack shimmer text above the % counter */
   justify-content: center;
   align-items: center;
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: clamp(1.2rem, 3vw, 2rem);
+}
+
+#loader-progress-text {
+  font-family: 'Inter', sans-serif;
 }
 
 .shimmer-wave-text {

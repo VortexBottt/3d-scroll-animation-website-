@@ -160,28 +160,28 @@
     requestAnimationFrame(onFrame);
   }
 
-  // --- Shimmer Wave Loader (tracks first batch: frames 0..15) ---
-  const LOADER_BATCH_END = 15; // frames 0..15 inclusive
-  const LOADER_BATCH_TOTAL = LOADER_BATCH_END + 1; // 16 images
+  // --- Shimmer Wave Loader (tracks the ENTIRE sequence: frames 0..TOTAL_FRAMES-1) ---
+  const LOADER_BATCH_END = TOTAL_FRAMES - 1; // last frame index (237)
+  const LOADER_BATCH_TOTAL = LOADER_BATCH_END + 1; // 238 images (= TOTAL_FRAMES)
   const LOADER_MIN_MS = 800; // minimum visible time (avoids a flash on cache hits)
   const LOADER_WIPE_MS = 800; // matches the clip-path transition duration
-  const LOADER_MAX_MS = 6000; // watchdog: force-hide the loader even if frames never settle
   const FRAME_LOAD_TIMEOUT_MS = 5000; // per-frame cap so one hung request can't stall the batch
 
   const preloaderEl = document.getElementById('preloader');
   const shimmerEl = document.getElementById('shimmer-text');
+  const progressEl = document.getElementById('loader-progress-text');
 
   let loaderLoaded = 0;
   let loaderStart = 0;
   let loaderDone = false;
   let loaderDismissed = false;
-  let loaderWatchdog = null;
 
   function beginLoader() {
     if (loaderDismissed) return; // already revealed once; never restart
     loaderLoaded = 0;
     loaderDone = false;
     loaderStart = Date.now();
+    if (progressEl) progressEl.textContent = '0%';
 
     // Split the sentence into per-letter spans so the wave ripples left → right.
     // Built only once; a mid-load breakpoint re-init keeps the existing spans.
@@ -197,18 +197,14 @@
       }
     }
 
-    // Watchdog: guarantee the loader hides even if frames never settle (slow/dead network)
-    clearTimeout(loaderWatchdog);
-    loaderWatchdog = setTimeout(() => {
-      if (!loaderDone && !loaderDismissed) {
-        loaderDone = true;
-        finishLoader();
-      }
-    }, LOADER_MAX_MS);
+    // No watchdog: the loader now waits for ALL frames to settle. Each frame
+    // is bounded by FRAME_LOAD_TIMEOUT_MS and the worker pool requests every
+    // frame, so the count is guaranteed to reach TOTAL_FRAMES.
   }
 
   function finishLoader() {
-    clearTimeout(loaderWatchdog); // hide sequence has begun; stop the watchdog
+    // Only finish once EVERY frame in the sequence has settled
+    if (loaderLoaded < TOTAL_FRAMES) return;
     const elapsedTime = Date.now() - loaderStart;
     const wait = Math.max(0, LOADER_MIN_MS - elapsedTime);
     setTimeout(() => {
@@ -223,9 +219,12 @@
 
   function onLoaderFrameLoaded(index) {
     if (loaderDismissed || loaderDone) return;
-    if (index > LOADER_BATCH_END) return; // only the first batch counts
-    loaderLoaded = Math.min(LOADER_BATCH_TOTAL, loaderLoaded + 1);
-    if (loaderLoaded >= LOADER_BATCH_TOTAL) {
+    loaderLoaded = Math.min(TOTAL_FRAMES, loaderLoaded + 1);
+    // Live percentage counter under the shimmer text
+    if (progressEl) {
+      progressEl.textContent = Math.round((loaderLoaded / TOTAL_FRAMES) * 100) + '%';
+    }
+    if (loaderLoaded >= TOTAL_FRAMES) {
       loaderDone = true;
       finishLoader();
     }
@@ -288,8 +287,8 @@
     }
 
     // Always count toward the loader — even failed/timed-out frames settle here,
-    // so the loader reaches 16 and hides. Failed frames simply aren't cached and
-    // the nearest-good-frame fallback covers them at render time.
+    // so the loader reaches TOTAL_FRAMES (238) and hides. Failed frames simply
+    // aren't cached and the nearest-good-frame fallback covers them at render time.
     if (gen === preloadGeneration) {
       onLoaderFrameLoaded(index);
     }
